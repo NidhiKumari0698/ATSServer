@@ -4,7 +4,7 @@ const LoginData = mongoose.model('LoginData', new mongoose.Schema({
   password: String,
   role: String,
   isActive: String,
-  //loginId:String
+  loginId:String
 
 
 }));

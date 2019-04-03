@@ -6,12 +6,10 @@ const AssignInterviewerData = require('../../models/assignInterviewer.model')
 const AddInterviewerData = require('../../models/addInterviewer.model')
 module.exports = {
   getAssignInterviewerDetails: async (req, res) => {
-    if ((!req.params.jobId) || (!req.params.candidateEmail)) {
+    if ((!req.params.jobId) || (!req.params.loginId)) {
       res.json({ status: 'empty request' });
     }
-    console.log('req status is', req.body.status);
-    console.log('you are here at /assignInterviewerData/Details');
-    let assigndata = await AssignInterviewerData.findOne({ jobId: req.params.jobId, candidate_email: req.params.candidateEmail });
+    let assigndata = await AssignInterviewerData.findOne({ jobId: req.params.jobId, candidate_id: req.params.loginId });
     console.log('jobandcandidate is:', assigndata);
     res.json(assigndata);
 
@@ -30,7 +28,7 @@ module.exports = {
 
     AssignInterviewerData.findOne({ candidate_id: req.body.candidate_id, jobId: req.body.jobId }, async (err, assigninterviewerdata) => {
       if (err) console.log(err);
-      console.log(assigninterviewerdata);
+      console.log('assign value is:',assigninterviewerdata);
       if (!assigninterviewerdata) {
         console.log('hghfhgfg');
         let assigninterviewerData = new AssignInterviewerData(req.body);
@@ -38,7 +36,7 @@ module.exports = {
         console.log("assignInterviewerdata API", assigninterviewerData);
         res.send(assigninterviewerData);
         console.log('round before:', assigninterviewerData.round);
-        assigninterviewerData.round = 0;
+        assigninterviewerData.round = 1;
         console.log('round after:', assigninterviewerData.round);
         assigninterviewerData.save((err, saved) => {
           //res.json(saved);
@@ -54,7 +52,8 @@ module.exports = {
         assigninterviewerdata.time = req.body.time;
         assigninterviewerdata.active = 1;
         assigninterviewerdata.save((err, saved) => {
-          //res.json(saved);
+          console.log('after updating',saved)
+          res.json(saved);
         });
 
       }
@@ -74,8 +73,9 @@ module.exports = {
       }
     }, { new: true }, (err, assigninterviewerdata1) => {
 
-      console.log('assigninterviewerdata1 is:', assigninterviewerdata1);
-      console.log(assigninterviewerdata1);
+      // console.log('assigninterviewerdata1 is:', assigninterviewerdata1);
+      // console.log(assigninterviewerdata1);
+      res.json(assigninterviewerdata1)
     });
 
 

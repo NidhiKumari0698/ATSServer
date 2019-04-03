@@ -4,11 +4,23 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const mongoOptions = { useNewUrlParser: true };
+app.use( (req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS, PUT, PATCH, DELETE, Authorization" 
+  );
+  res.setHeader(
+      "Access-Control-Allow-Headers",
+      "X-Requested-With,content-type"
+  );
+  res.setHeader("Access-Control-Allow-Credentials", true);
+  next();
+});
 
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors());
 
 mongoose.connect('mongodb://localhost/ATS', mongoOptions)
   .then(() => console.log('connected to MongoDB'))

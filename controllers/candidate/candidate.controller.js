@@ -4,6 +4,7 @@ const LoginData = require('../../models/Login.model')
 const JobAndCandidate = require('../../models/JobAndCandidate.model')
 const AssignInterviewerData = require('../../models/assignInterviewer.model')
 const AddInterviewerData = require('../../models/addInterviewer.model')
+const encryptPassword = require(`../../utilities/hashPassword`)
 module.exports = {
     getCandidates: async (req, res) => {
         const candidateData = await CandidateData.find().sort('PersonalInfo.email');
@@ -12,11 +13,7 @@ module.exports = {
     },
     // other methods
     getCandidateJobs: async (req, res) => {
-        console.log(req.params.candidateEmail);
-        console.log('inside /candidateData/job/');
-        const thisCandidate = await CandidateData.findOne({ 'PersonalInfo.email': req.params.candidateEmail });
-        //console.log('candidate details is:',thisCandidate);
-        console.log('MMMMMMMM', (!thisCandidate));
+        const thisCandidate = await CandidateData.findOne({ '_id': req.params.loginId });
         var jobarr = [];
         if (thisCandidate) {
             console.log('##########$$$$$$$', thisCandidate.JobDetails);
@@ -25,53 +22,126 @@ module.exports = {
                 jobarr.push(obj);
             }
         }
-        console.log('job arr is', jobarr)
         res.json(jobarr);
 
     },
-    setCandidates: async (req, res) => {
-        // CANDIDATE IS UNIQUE OR NOT
-        const datas = await CandidateData.find().sort('email');
-        var value = 1;
-        var index;
-        var candidate = {};
-        for (var i = 0; i < datas.length; i++) {
-            console.log('email in list this time  is:', datas[i].PersonalInfo.email);
-            console.log('get email is:', req.body.PersonalInfo.email);
-            if (datas[i].PersonalInfo.email == req.body.PersonalInfo.email) {
-                console.log('candidate matched');
-                value = 0;
-                candidate = datas[i];
-                index = i;
-                break;
+    getCandidateById:async (req,res)=>{
+       const candidate=await CandidateData.findOne({'_id':req.params.loginId});
+       console.log('inside getCandidateById')
+       console.log('candidate found:',(!candidate))
+       if(candidate)
+       {
+           res.json(candidate);
+       }
+    },
 
-            }
+    updateCandidateById:async(req,res)=>{
+
+console.log('inside updateCandidateById');
+console.log('id:',req.params.loginId);
+console.log('body:',req.body);
+       CandidateData.findByIdAndUpdate({'_id':req.params.loginId},{
+           'PersonalInfo.firstname':req.body.PersonalInfo.firstname,
+           'PersonalInfo.lastname':req.body. PersonalInfo.lastname,
+           'PersonalInfo.mobile':req.body.   PersonalInfo.mobile,
+           'PersonalInfo.address':req.body.PersonalInfo.address,
+          
+           AcademicDetails:req.body.AcademicDetails,
+           ReferenceDetails:req.body.ReferenceDetails,
+           WorkExperience:req.body.WorkExperience,
+
+       },function(err,result){
+           if(err) res.json(err)
+           else{
+               console.log('result in updateCandidateById',result)
+               res.json({success:true,message:'updated successfully'})
+           }
+       })
+    },
+    //WHEN A CANDIDATE IS APPLYING FOR MORE THAN ONE JOB (req=>{candLoginId,jobId}) 
+    setCandidates2:async(req,res)=>{
+    // check if candidate is applying for same job
+    let getCand=await CandidateData.findById({_id:req.body.candLoginId})
+    
+    if(getCand)
+    {
+        console.log('candidate found');
+        
+        let JobDetails=getCand.JobDetails
+        
+        let value3=await JobDetails.find(c=>c.jobId==req.body.jobId)
+         // if candidate is applying for same job
+         console.log("value3 is",(!value3))
+        if(value3)
+        {
+            res.json({message:'YOU HAVE ALREADY APPLIED FOR THIS JOB'})
+            return;
         }
-        // 
+         // if applying candidate is applying for different job
+         else{
+              //then push the jobId in candidate job field
+              let jobdata=await AddJobData.findOne({_id:req.body.jobId})
+              let postingTitle=jobdata.posting_title;
+              var obj2={
+                jobId: '',
+                jobPostingTitle:''
+              }
+              obj2.jobId=req.body.jobId;
+              obj2.jobPostingTitle=postingTitle;
+              getCand.JobDetails.push(obj2);
+              await getCand.save()
+
+              //and push the candidate in job's candidate field
+              var obj3={ candidateId: '', candidateEmail:'' }
+              obj3.candidateId=req.body.candLoginId
+              obj3.candidateEmail=getCand.PersonalInfo.email
+              jobdata.candidateDetails.push(obj3)
+              jobdata.save()
+
+              // and make a new combination jobId and candId
+
+              var datanew2= {
+                jobId: req.body.jobId,
+                jobPostingTitle: jobdata.posting_title,
+                candidateId: req.body.candLoginId,
+                candidateEmail: getCand.PersonalInfo.email,
+                candidateStatus: 'pending'
+            }
+
+            let d2= new JobAndCandidate(datanew2);
+            d2 = await d2.save();
+            res.json({message:'SUCCESSFULLY APPLIED FOR JOB'})
+
+         }
+       }
+   },
+    // 
+    
+    setCandidates: async (req, res) => {
+        console.log('inside setCandidates')
+        console.log('req.body:',req.body)
+        console.log('given email :',req.body.PersonalInfo.email)
+        // CANDIDATE IS UNIQUE OR NOT
+        const datas=await CandidateData.findOne({'PersonalInfo.email':req.body.PersonalInfo.email})
+        console.log('datas:',datas)
         // WHEN CANDIDATE IS UNIQUE
-        if (value) {
+        if (!datas) {
             console.log('this candidate is unique');
             // REGISTERING UNIQUE CANDIDATE DATA
             let candidatedata = new CandidateData(req.body)
             candidatedata = await candidatedata.save();
-            res.send(candidatedata);
-            // ADDIND CANDIDATE IN LIST OF CANDIDATE IN AddJobData's TABLE 
+            //console.log('candidate data is:',candidatedata)
+            let senddata=candidatedata;
+           // console.log('cand id is:',senddata)
+            // ADDING CANDIDATE IN LIST OF CANDIDATE IN AddJobData's TABLE 
             const addjobdata = await AddJobData.find();
             for (var k = 0; k < addjobdata.length; k++) {
-                console.log('addjobdata[k].JobDetails.jobId is:', addjobdata[k]._id);
-                console.log('req.body.JobDetails.jobId is:', req.body.JobDetails.jobId);
-                console.log('addjobdata[k].JobDetails.jobPostingTitle is:', addjobdata[k].posting_title);
-                console.log('req.body.JobDetails.jobPostingTitle is_id:', req.body.JobDetails.jobPostingTitle);
                 if (addjobdata[k]._id == req.body.JobDetails.jobId) {
-                    console.log(`one more candidate is applied for ${addjobdata[k].posting_title}`)
-                    console.log('candidatedata._id is:', candidatedata._id);
-                    console.log('candidatedata.PersonalInfo.email is:', candidatedata.PersonalInfo.email)
                     var obj = { candidateId: '', candidateEmail: '' };
                     obj.candidateId = candidatedata._id;
                     obj.candidateEmail = candidatedata.PersonalInfo.email;
                     addjobdata[k].candidateDetails.push(obj);
                     let a = await (addjobdata[k]).save();
-                    console.log('a', a);
                     break;
 
 
@@ -79,16 +149,20 @@ module.exports = {
             }
             // 
 
+            //DECRYPTING PASSWORD 
+            const decryptpass = await encryptPassword.encryptPassword(req.body.password)
+            // 
             // REGISTERING THIS CANDIDATE IN LOGIN DATA
             const logindata = new LoginData({
                 email: req.body.PersonalInfo.email,
-                password: req.body.password,
+                password: decryptpass,
                 role: "candidate",
-                isActive: "true"
+                isActive: "true",
+                loginId: candidatedata._id
+
             });
 
             let lData = await logindata.save();
-            console.log(lData);
             // 
             //REGISTERING JOB AND CANDIDATE UNIQUE COMBINATION IN JobAndCAndidate TABLE 
             var datanew = {
@@ -102,80 +176,77 @@ module.exports = {
             let d = new JobAndCandidate(datanew);
             d = await d.save();
             // 
+            console.log('cand id is:',senddata._id)
+            res.json({success:true ,message:"Data Saved Successfully",data:senddata});
         }
-        // 
-        // WHEN CANDIDATE IS NOT UNIQUE
-        else {
-            console.log('this candidate is not unique');
-            //CHECKING CANDIDATE APPLYING FOR SAME JOB 
-            var alljob = [];
-            alljob.push(candidate.JobDetails);
-            var value2 = 1;
-            console.log('all available jobs are;', alljob);
-            console.log('all candidate.jobDetails is:', candidate.JobDetails);
-            for (var j = 0; j < candidate.JobDetails.length; j++) {
-                console.log('candidate.JobDetails.jobPostingTitle is:', candidate.JobDetails[j].jobPostingTitle);
-                console.log('req.body.JobDetails.jobPostingTitle is:', req.body.JobDetails.jobPostingTitle);
-                if (candidate.JobDetails[j].jobPostingTitle == req.body.JobDetails.jobPostingTitle) {
-                    console.log('this candidate is already applied for this job');
-                    value2 = 0;
-                    break;
-                }
-            }
-            //
-            //WHEN CANDIDATE IS APPLIED FOR DIFFERENT JOB 
-            if (value2) {
-                var obj = req.body.JobDetails;
-                alljob.push(obj);
-                console.log('alljob is:', alljob);
-                candidate.JobDetails.push(obj);
-                let candidatedata = await candidate.save();
-                const addjobdata = await AddJobData.find();
-                for (var k = 0; k < addjobdata.length; k++) {
-                    console.log('addjobdata[k].JobDetails.jobId is:', addjobdata[k]._id);
-                    console.log('req.body.JobDetails.jobId is:', req.body.JobDetails.jobId);
-                    console.log('addjobdata[k].JobDetails.jobPostingTitle is:', addjobdata[k].posting_title);
-                    console.log('req.body.JobDetails.jobPostingTitle is_id:', req.body.JobDetails.jobPostingTitle);
-                    if (addjobdata[k]._id == req.body.JobDetails.jobId) {
-                        console.log(`one more candidate is applied for ${addjobdata[k].posting_title}`)
-                        console.log('candidateData._id is:', candidatedata._id);
-                        console.log('candidateData.PersonalInfo.email is:', candidatedata.PersonalInfo.email)
-                        var obj = { candidateId: '', candidateEmail: '' };
-                        obj.candidateId = candidatedata._id;
-                        obj.candidateEmail = candidatedata.PersonalInfo.email;
-                        addjobdata[k].candidateDetails.push(obj);
-                        let a = await (addjobdata[k]).save();
-                        console.log('a', a);
-                        break;
 
-
-                    }
-                }
-                var datanew = {
-                    jobId: req.body.JobDetails.jobId,
-                    jobPostingTitle: req.body.JobDetails.jobPostingTitle,
-                    candidateId: candidatedata._id,
-                    candidateEmail: candidatedata.PersonalInfo.email,
-                    candidateStatus: 'pending'
-                }
-
-
-                let d = new JobAndCandidate(datanew);
-                d = await d.save();
-                res.send(d);
-
-
-
-
-            }
-            //  
-            // WHEN SAME CANDIDATE IS APPLYING FOR SAME JOB
-            else {
-                console.log('this candidate is already aplied for this job');
-            }
-            // 
-        }
-        // 
+        // else
+        // {
+        //     res.json({success:true ,message:"You are not a unique candidate"});
+        // }
 
     }
 }
+
+
+
+        // 
+        // WHEN CANDIDATE IS NOT UNIQUE
+       // else {
+            //CHECKING CANDIDATE APPLYING FOR SAME JOB 
+            // var alljob = [];
+            // alljob.push(candidate.JobDetails);
+            // var value2 = 1;
+            // for (var j = 0; j < candidate.JobDetails.length; j++) {
+            //     if (candidate.JobDetails[j].jobPostingTitle == req.body.JobDetails.jobPostingTitle) {
+            //         value2 = 0;
+            //         break;
+            //     }
+            // }
+            //
+            //WHEN CANDIDATE IS APPLIED FOR DIFFERENT JOB 
+            // if (value2) {
+            //     var obj = req.body.JobDetails;
+            //     alljob.push(obj);
+            //     candidate.JobDetails.push(obj);
+            //     let candidatedata = await candidate.save();
+            //     const addjobdata = await AddJobData.find();
+            //     for (var k = 0; k < addjobdata.length; k++) {
+            //         if (addjobdata[k]._id == req.body.JobDetails.jobId) {
+            //             var obj = { candidateId: '', candidateEmail: '' };
+            //             obj.candidateId = candidatedata._id;
+            //             obj.candidateEmail = candidatedata.PersonalInfo.email;
+            //             addjobdata[k].candidateDetails.push(obj);
+            //             let a = await (addjobdata[k]).save();
+            //             break;
+
+
+            //         }
+            //     }
+            //     var datanew = {
+            //         jobId: req.body.JobDetails.jobId,
+            //         jobPostingTitle: req.body.JobDetails.jobPostingTitle,
+            //         candidateId: candidatedata._id,
+            //         candidateEmail: candidatedata.PersonalInfo.email,
+            //         candidateStatus: 'pending'
+            //     }
+
+
+            //     let d = new JobAndCandidate(datanew);
+            //     d = await d.save();
+            //     res.send(d);
+
+
+
+
+            // }
+            //  
+            // WHEN SAME CANDIDATE IS APPLYING FOR SAME JOB
+            // else {
+            //     res.json({success:true,message:"You Have already applied for this job"})
+            //     console.log('this candidate is already aplied for this job');
+            // }
+            // 
+       // }
+        // 
+

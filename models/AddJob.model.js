@@ -8,8 +8,8 @@ const AddJobData = mongoose.model('AddJobData', new mongoose.Schema({
   date_close: String,
   job_type: String,
   salary: String,
-  position_summary: String,
-  job_respo: String,
+  position_summary:[ {position_summary:String}],
+  job_respo:[{job_respo:String} ],
   exp: String,
   candidateDetails: [{ candidateId: String, candidateEmail: String }]
 

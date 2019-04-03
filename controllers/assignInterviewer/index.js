@@ -3,7 +3,7 @@ const assignInterviewerController=require('./assignInterviewer.controller')
 
 router.get('/',assignInterviewerController.getAssignInterviewerData)
 router.post('/',assignInterviewerController.postAssignInterviewerData)
-router.get('/Details/:jobId/:candidateEmail',assignInterviewerController.getAssignInterviewerDetails)
+router.get('/Details/:jobId/:loginId',assignInterviewerController.getAssignInterviewerDetails)
 router.post('/active/:jobId/:candidateId',assignInterviewerController.postActiveAssignInterviewerData)
 
 

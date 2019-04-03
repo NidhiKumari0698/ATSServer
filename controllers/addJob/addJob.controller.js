@@ -12,10 +12,12 @@ module.exports = {
   },
 
   postAddJobData: async (req, res) => {
+    console.log('inside postaddjobdata')
+    console.log('body',req.body)
 
     let addjobData = new AddJobData(req.body);
     addjobData = await addjobData.save();
-    res.send(addjobData);
+    res.send({success:true,message:"data saved successfully"});
   }
 
 }

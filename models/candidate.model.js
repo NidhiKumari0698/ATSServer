@@ -16,19 +16,19 @@ const CandidateData = mongoose.model('CandidateData', new mongoose.Schema({
     resume: String,
     video: String,
   },
-  WorkExperience: {
+  WorkExperience: [{
     prev_comp: String,
     prev_sal: String,
     exp_year: Number,
     exp_month: Number,
-  },
+  }],
   ReferenceDetails:
-  {
+  [{
     refname: String,
     refemail: String,
     refrelation: String,
     refmobile: Number,
-  },
+  }],
   JobDetails: [{
     jobId: String,
     jobPostingTitle: String
@@ -40,6 +40,8 @@ const CandidateData = mongoose.model('CandidateData', new mongoose.Schema({
     Others: { passyear: String, course: String, college: String, university: String, stream: String, cgpa: String }
 
   },
+  isVerifiedOtp:Boolean
+  
 }));
 
 module.exports = CandidateData;

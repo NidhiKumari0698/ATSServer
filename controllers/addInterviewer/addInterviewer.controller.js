@@ -4,6 +4,7 @@ const LoginData = require('../../models/Login.model')
 const JobAndCandidate = require('../../models/JobAndCandidate.model')
 const AssignInterviewerData = require('../../models/assignInterviewer.model')
 const AddInterviewerData = require('../../models/addInterviewer.model')
+const encryptPassword = require('../../utilities/hashPassword')
 module.exports = {
 
   getInterviewerData: async (req, res) => {
@@ -12,31 +13,36 @@ module.exports = {
   },
 
   postInterviewerData: async (req, res) => {
-    // console.log('req.body',req.body);
+
     let addInterviewerData = new AddInterviewerData(req.body);
-    addInterviewerData.save((err, result) => {
+    addInterviewerData.save(async (err, result) => {
       if (err) {
         throw err;
       }
       else {
-        res.send(result);
+        res.send({success:true,message:"data saved successfully"});
+        //BCRPT PASSWORD
+        const decryptpass = await encryptPassword.encryptPassword(req.body.password)
+        // 
+
+
+        const logindata = new LoginData({
+
+          email: req.body.email,
+          password: decryptpass,
+          role: "interviewer",
+          isActive: "true",
+          loginId: result._id
+        });
+
+        let lData = await logindata.save();
+        console.log(lData);
       }
     })
     // addInterviewerData = await addInterviewerData.save();
     // res.send(addInterviewerData);
 
-    console.log('req.body.email:', req.body.email);
-    console.log('req.body.password:', req.body.password)
-    const logindata = new LoginData({
 
-      email: req.body.email,
-      password: req.body.password,
-      role: "interviewer",
-      isActive: "true"
-    });
-
-    let lData = await logindata.save();
-    console.log(lData);
 
 
 
